@@ -164,17 +164,12 @@ def show_route_planning():
                             <strong style="font-size: 1.1rem;">Stop {i+1}:</strong> 
                             <span style="font-size: 1.1rem; margin-left: 0.5rem;">{stop['location']}</span>
                         </div>
-                        <div style="margin-left: 1rem;">
-                            <button onclick="removeStop({i})" style="background-color: #dc3545; color: white; border: none; border-radius: 0.4rem; padding: 0.4rem 0.8rem; cursor: pointer; font-weight: bold; transition: background-color 0.2s;">
-                                🗑️ Remove
-                            </button>
-                        </div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
                 
                 # Remove button functionality
-                if st.button(f"Remove Stop {i+1}", key=f"remove_{i}"):
+                if st.button(f"🗑️ Remove Stop {i+1}", key=f"remove_{i}"):
                     st.session_state.stops.pop(i)
                     st.rerun()
     else:
