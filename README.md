@@ -6,7 +6,6 @@ A comprehensive Streamlit application for planning travel routes with multiple s
 
 - **Route Planning**: Set origin and destination points
 - **Multiple Stops**: Add up to 10 stops along your route
-- **Stop Classification**: Label stops as "Mandatory" or "Optional"
 - **TSP Route Analysis**: Calculate optimal routes with optional stops using Traveling Salesman Problem solver
 - **Route Rankings**: View routes ranked by duration with extra time/distance metrics
 - **Interactive Map**: Visualize your route with markers for all points
@@ -59,9 +58,8 @@ A comprehensive Streamlit application for planning travel routes with multiple s
 - **Set Origin**: Enter your starting point (e.g., "New York, NY")
 - **Set Destination**: Enter your final destination (e.g., "Los Angeles, CA")
 - **Add Stops**: Use the "Add New Stop" expander to add up to 10 stops
-- **Stop Types**: Choose between "Mandatory" (must-visit) or "Optional" (nice-to-have)
 - **Manage Stops**: Remove individual stops or clear all stops
-- **TSP Analysis**: Click "Calculate Times to Add Stops" to analyze optimal routes with optional stops
+- **TSP Analysis**: Click "Calculate Times to Add Stops" to analyze optimal routes with stops
 
 ### 2. Route Summary Page
 
@@ -75,8 +73,7 @@ A comprehensive Streamlit application for planning travel routes with multiple s
 - **Markers**: 
   - 🟢 Green play icon: Origin
   - 🔴 Red flag icon: Destination
-  - 🟠 Orange info icon: Mandatory stops
-  - 🔵 Blue info icon: Optional stops
+  - 🔵 Blue info icon: Stops
 - **Popups**: Click markers to see location details
 
 ### 4. TSP Route Analysis

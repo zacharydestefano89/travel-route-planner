@@ -47,23 +47,11 @@ st.markdown("""
         margin-bottom: 1rem;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    .mandatory {
-        border-left-color: #e74c3c !important;
-        background-color: #495057 !important;
-    }
-    .optional {
-        border-left-color: #f39c12 !important;
-        background-color: #6c757d !important;
-    }
     .stop-info {
         color: white !important;
         font-weight: 500;
     }
-    .stop-badge {
-        font-weight: bold;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
+
     .stop-card:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 8px rgba(0,0,0,0.15);
@@ -138,7 +126,7 @@ def show_route_planning():
     
     # Add new stop
     with st.expander("➕ Add New Stop", expanded=False):
-        col1, col2, col3 = st.columns([3, 2, 1])
+        col1, col2 = st.columns([4, 1])
         
         with col1:
             new_stop = st.text_input(
@@ -148,22 +136,15 @@ def show_route_planning():
             )
         
         with col2:
-            stop_type = st.selectbox(
-                "Stop type:",
-                ["Optional", "Mandatory"],
-                key="stop_type_input"
-            )
-        
-        with col3:
             if st.button("Add Stop", key="add_stop_btn"):
                 if new_stop and len(st.session_state.stops) < 10:
                     stop_data = {
                         "location": new_stop,
-                        "type": stop_type,
+                        "type": "Optional",
                         "id": len(st.session_state.stops)
                     }
                     st.session_state.stops.append(stop_data)
-                    st.success(f"Added {new_stop} as {stop_type.lower()} stop!")
+                    st.success(f"Added {new_stop}!")
                     st.rerun()
                 elif len(st.session_state.stops) >= 10:
                     st.error("Maximum 10 stops allowed!")
@@ -175,19 +156,13 @@ def show_route_planning():
         st.subheader(f"Current Stops ({len(st.session_state.stops)}/10)")
         
         for i, stop in enumerate(st.session_state.stops):
-            stop_class = "mandatory" if stop["type"] == "Mandatory" else "optional"
-            badge_color = "#e74c3c" if stop["type"] == "Mandatory" else "#f39c12"
-            
             with st.container():
                 st.markdown(f"""
-                <div class="stop-card {stop_class}">
+                <div class="stop-card">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div class="stop-info">
                             <strong style="font-size: 1.1rem;">Stop {i+1}:</strong> 
                             <span style="font-size: 1.1rem; margin-left: 0.5rem;">{stop['location']}</span>
-                            <span class="stop-badge" style="background-color: {badge_color}; color: white; padding: 0.3rem 0.6rem; border-radius: 0.4rem; font-size: 0.75rem; margin-left: 0.8rem; display: inline-block;">
-                                {stop['type']}
-                            </span>
                         </div>
                         <div style="margin-left: 1rem;">
                             <button onclick="removeStop({i})" style="background-color: #dc3545; color: white; border: none; border-radius: 0.4rem; padding: 0.4rem 0.8rem; cursor: pointer; font-weight: bold; transition: background-color 0.2s;">
@@ -231,8 +206,8 @@ def show_route_planning():
     with col4:
         if st.button("⏱️ Calculate Times to Add Stops", type="primary"):
             if st.session_state.origin and st.session_state.destination:
-                # Get optional stops from the current stops
-                optional_stops = [stop["location"] for stop in st.session_state.stops if stop["type"] == "Optional"]
+                # Get all stops as optional stops
+                optional_stops = [stop["location"] for stop in st.session_state.stops]
                 
                 if optional_stops:
                     # Store the calculation trigger in session state
@@ -242,7 +217,7 @@ def show_route_planning():
                     st.session_state.tsp_optional_stops = optional_stops
                     st.rerun()
                 else:
-                    st.warning("Please add some optional stops to calculate route times!")
+                    st.warning("Please add some stops to calculate route times!")
             else:
                 st.warning("Please set both origin and destination first!")
     
@@ -370,9 +345,7 @@ def show_route_summary():
         st.metric("Destination", st.session_state.destination or "Not set")
     
     with col3:
-        mandatory_count = sum(1 for stop in st.session_state.stops if stop["type"] == "Mandatory")
-        optional_count = len(st.session_state.stops) - mandatory_count
-        st.metric("Total Stops", f"{len(st.session_state.stops)} ({mandatory_count} mandatory, {optional_count} optional)")
+        st.metric("Total Stops", len(st.session_state.stops))
     
     st.markdown('</div>', unsafe_allow_html=True)
     
@@ -384,7 +357,6 @@ def show_route_summary():
         route_data.append({
             "Order": 1,
             "Location": st.session_state.origin,
-            "Type": "Origin",
             "Notes": "Starting point"
         })
         
@@ -392,14 +364,12 @@ def show_route_summary():
             route_data.append({
                 "Order": i + 2,
                 "Location": stop["location"],
-                "Type": stop["type"],
                 "Notes": f"Stop {i + 1}"
             })
         
         route_data.append({
             "Order": len(st.session_state.stops) + 2,
             "Location": st.session_state.destination,
-            "Type": "Destination",
             "Notes": "Final destination"
         })
         
@@ -464,11 +434,10 @@ def show_map_view():
         for i, stop in enumerate(st.session_state.stops):
             stop_location = geolocator.geocode(stop["location"])
             if stop_location:
-                icon_color = 'orange' if stop["type"] == "Mandatory" else 'blue'
                 folium.Marker(
                     [stop_location.latitude, stop_location.longitude],
-                    popup=f"<b>Stop {i+1}:</b> {stop['location']}<br><b>Type:</b> {stop['type']}",
-                    icon=folium.Icon(color=icon_color, icon='info-sign')
+                    popup=f"<b>Stop {i+1}:</b> {stop['location']}",
+                    icon=folium.Icon(color='blue', icon='info-sign')
                 ).add_to(m)
         
         # Display map
