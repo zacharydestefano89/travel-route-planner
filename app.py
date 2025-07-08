@@ -6,6 +6,12 @@ from geopy.geocoders import Nominatim
 from geopy.distance import geodesic
 import json
 from datetime import datetime
+import sys
+import os
+
+# Add the current directory to the path so we can import mapbox_matrix
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from mapbox_matrix import solve_origin_destination_with_optional_stops_streamlit
 
 # Page configuration
 st.set_page_config(
@@ -207,7 +213,7 @@ def show_route_planning():
     
     # Route actions
     st.markdown("---")
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         if st.button("🗑️ Clear All Stops", type="secondary"):
@@ -221,6 +227,128 @@ def show_route_planning():
     with col3:
         if st.button("📋 Load Route", type="secondary"):
             load_route()
+    
+    with col4:
+        if st.button("⏱️ Calculate Times to Add Stops", type="primary"):
+            if st.session_state.origin and st.session_state.destination:
+                # Get optional stops from the current stops
+                optional_stops = [stop["location"] for stop in st.session_state.stops if stop["type"] == "Optional"]
+                
+                if optional_stops:
+                    # Store the calculation trigger in session state
+                    st.session_state.calculate_tsp = True
+                    st.session_state.tsp_origin = st.session_state.origin
+                    st.session_state.tsp_destination = st.session_state.destination
+                    st.session_state.tsp_optional_stops = optional_stops
+                    st.rerun()
+                else:
+                    st.warning("Please add some optional stops to calculate route times!")
+            else:
+                st.warning("Please set both origin and destination first!")
+    
+    # TSP Calculation Results
+    if hasattr(st.session_state, 'calculate_tsp') and st.session_state.calculate_tsp:
+        show_tsp_results()
+
+def show_tsp_results():
+    """Display TSP calculation results in a formatted table."""
+    st.markdown('<h2 class="section-header">⏱️ Route Time Analysis</h2>', unsafe_allow_html=True)
+    
+    # Show calculation parameters
+    st.info(f"""
+    **Analysis Parameters:**
+    - 🚀 **Origin:** {st.session_state.tsp_origin}
+    - 🎯 **Destination:** {st.session_state.tsp_destination}
+    - 📍 **Optional Stops:** {', '.join(st.session_state.tsp_optional_stops)}
+    """)
+    
+    # Run TSP calculation
+    with st.spinner("🔄 Calculating optimal routes... This may take a few moments."):
+        result = solve_origin_destination_with_optional_stops_streamlit(
+            origin=st.session_state.tsp_origin,
+            destination=st.session_state.tsp_destination,
+            optional_stops=st.session_state.tsp_optional_stops
+        )
+    
+    if result["success"]:
+        # Display summary statistics
+        st.markdown('<h3 class="section-header">📊 Summary Statistics</h3>', unsafe_allow_html=True)
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric(
+                "Fastest Route", 
+                f"{result['summary_stats']['fastest_route']['duration_minutes']} min",
+                f"{result['summary_stats']['fastest_route']['distance_km']} km"
+            )
+        
+        with col2:
+            st.metric(
+                "Slowest Route", 
+                f"{result['summary_stats']['slowest_route']['duration_minutes']} min",
+                f"{result['summary_stats']['slowest_route']['distance_km']} km"
+            )
+        
+        with col3:
+            st.metric(
+                "Average Duration", 
+                f"{result['summary_stats']['average_duration_minutes']} min"
+            )
+        
+        with col4:
+            st.metric(
+                "Total Combinations", 
+                result['total_combinations']
+            )
+        
+        # Display route rankings table
+        st.markdown('<h3 class="section-header">📋 Route Rankings (by Duration)</h3>', unsafe_allow_html=True)
+        
+        # Prepare data for the table
+        table_data = []
+        for route in result['route_rankings']:
+            table_data.append({
+                "Rank": route['rank'],
+                "Route": route['name'],
+                "Duration (min)": route['total_duration_minutes'],
+                "Distance (km)": route['total_distance_km'],
+                "Stops": route['num_stops'],
+                "Extra Time (min)": f"+{route['extra_duration_minutes']}" if route['extra_duration_minutes'] > 0 else "Direct",
+                "Extra Distance (km)": f"+{route['extra_distance_km']}" if route['extra_distance_km'] > 0 else "Direct",
+                "Path": " → ".join(route['path'])
+            })
+        
+        df = pd.DataFrame(table_data)
+        
+        # Display the dataframe without special highlighting
+        st.dataframe(df, use_container_width=True, hide_index=True)
+        
+        # Add a reset button
+        if st.button("🔄 Calculate Again", type="secondary"):
+            st.session_state.calculate_tsp = False
+            st.rerun()
+        
+        # Add export options
+        st.markdown('<h4>💾 Export Results</h4>', unsafe_allow_html=True)
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("📄 Export as JSON"):
+                export_tsp_results_json(result)
+        
+        with col2:
+            if st.button("📊 Export as CSV"):
+                export_tsp_results_csv(df)
+    
+    else:
+        st.error(f"❌ Calculation failed: {result['error']}")
+        st.info(f"💡 {result['suggestion']}")
+        
+        # Add a reset button
+        if st.button("🔄 Try Again", type="secondary"):
+            st.session_state.calculate_tsp = False
+            st.rerun()
 
 def show_route_summary():
     st.markdown('<h2 class="section-header">📋 Route Summary</h2>', unsafe_allow_html=True)
@@ -394,6 +522,25 @@ def export_route_csv(df):
         label="Download CSV",
         data=csv,
         file_name=f"route_plan_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+        mime="text/csv"
+    )
+
+def export_tsp_results_json(result):
+    """Export TSP results as JSON."""
+    st.download_button(
+        label="Download JSON",
+        data=json.dumps(result, indent=2),
+        file_name=f"tsp_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+        mime="application/json"
+    )
+
+def export_tsp_results_csv(df):
+    """Export TSP results as CSV."""
+    csv = df.to_csv(index=False)
+    st.download_button(
+        label="Download CSV",
+        data=csv,
+        file_name=f"tsp_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
         mime="text/csv"
     )
 

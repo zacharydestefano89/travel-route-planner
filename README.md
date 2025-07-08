@@ -7,6 +7,8 @@ A comprehensive Streamlit application for planning travel routes with multiple s
 - **Route Planning**: Set origin and destination points
 - **Multiple Stops**: Add up to 10 stops along your route
 - **Stop Classification**: Label stops as "Mandatory" or "Optional"
+- **TSP Route Analysis**: Calculate optimal routes with optional stops using Traveling Salesman Problem solver
+- **Route Rankings**: View routes ranked by duration with extra time/distance metrics
 - **Interactive Map**: Visualize your route with markers for all points
 - **Route Summary**: View detailed route information and statistics
 - **Export Options**: Download routes as JSON or CSV files
@@ -19,6 +21,7 @@ A comprehensive Streamlit application for planning travel routes with multiple s
 
 - Python 3.7 or higher
 - pip (Python package installer)
+- Mapbox API key (for TSP route analysis)
 
 ### Installation
 
@@ -33,12 +36,21 @@ A comprehensive Streamlit application for planning travel routes with multiple s
    pip install -r requirements.txt
    ```
 
-3. **Run the application**:
+3. **Set up Mapbox API key** (for TSP analysis):
+   ```bash
+   # Option 1: Environment variable
+   export MAPBOX_ACCESS_TOKEN='your_mapbox_token_here'
+   
+   # Option 2: Create .env file
+   echo "MAPBOX_ACCESS_TOKEN=your_mapbox_token_here" > .env
+   ```
+
+4. **Run the application**:
    ```bash
    streamlit run app.py
    ```
 
-4. **Open your browser** and navigate to `http://localhost:8501`
+5. **Open your browser** and navigate to `http://localhost:8501`
 
 ## 📖 How to Use
 
@@ -49,6 +61,7 @@ A comprehensive Streamlit application for planning travel routes with multiple s
 - **Add Stops**: Use the "Add New Stop" expander to add up to 10 stops
 - **Stop Types**: Choose between "Mandatory" (must-visit) or "Optional" (nice-to-have)
 - **Manage Stops**: Remove individual stops or clear all stops
+- **TSP Analysis**: Click "Calculate Times to Add Stops" to analyze optimal routes with optional stops
 
 ### 2. Route Summary Page
 
@@ -66,6 +79,14 @@ A comprehensive Streamlit application for planning travel routes with multiple s
   - 🔵 Blue info icon: Optional stops
 - **Popups**: Click markers to see location details
 
+### 4. TSP Route Analysis
+
+- **Calculate Optimal Routes**: Click "Calculate Times to Add Stops" button
+- **Route Rankings**: View all possible route combinations ranked by duration
+- **Extra Metrics**: See additional time and distance compared to direct route
+- **Summary Statistics**: Get overview of fastest, slowest, and average routes
+- **Export Results**: Download analysis as JSON or CSV files
+
 ## 🛠️ Technical Details
 
 ### Dependencies
@@ -75,6 +96,8 @@ A comprehensive Streamlit application for planning travel routes with multiple s
 - **folium**: Interactive maps
 - **streamlit-folium**: Streamlit integration for folium maps
 - **geopy**: Geocoding and distance calculations
+- **requests**: HTTP library for API calls
+- **python-dotenv**: Environment variable management
 
 ### Architecture
 
@@ -87,10 +110,12 @@ A comprehensive Streamlit application for planning travel routes with multiple s
 
 ```
 travel-route-planner/
-├── app.py              # Main Streamlit application
-├── requirements.txt    # Python dependencies
-├── README.md          # Documentation
-└── .gitignore         # Git ignore file
+├── app.py                          # Main Streamlit application
+├── mapbox_matrix.py                # TSP solver and Mapbox API integration
+├── requirements.txt                # Python dependencies
+├── test_streamlit_tsp.py          # Test script for TSP integration
+├── README.md                      # Documentation
+└── .gitignore                     # Git ignore file
 ```
 
 ## 🎨 Customization

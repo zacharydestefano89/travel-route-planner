@@ -782,7 +782,7 @@ def solve_origin_destination_with_optional_stops():
                 # Route with optional stops
                 route_locations = [origin] + list(combination) + [destination]
                 stops_str = " → ".join(combination)
-                route_name = f"Route with {len(combination)} stop(s): {origin} → {stops_str} → {destination}"
+                route_name = f"Route with {len(combination)} stop(s):  {stops_str} "
             
             print(f"{i:2d}. {route_name}")
             
@@ -830,105 +830,6 @@ def solve_origin_destination_with_optional_stops():
             
             print(f"    🗺️  Path: {' → '.join(route.path)}")
         
-        # Find best routes by number of stops (by duration)
-        print("\n" + "="*60)
-        print("🏆 BEST ROUTES BY NUMBER OF STOPS (by duration)")
-        print("="*60)
-        
-        best_by_stops = {}
-        for name, route, num_stops in all_routes:
-            if num_stops not in best_by_stops or route.total_duration < best_by_stops[num_stops][1].total_duration:
-                best_by_stops[num_stops] = (name, route)
-        
-        for num_stops in sorted(best_by_stops.keys()):
-            name, route = best_by_stops[num_stops]
-            print(f"\n🎯 Best route with {num_stops} stop(s):")
-            print(f"   {name}")
-            print(f"   📍 Distance: {route.total_distance:.2f} km")
-            print(f"   ⏱️  Duration: {route.total_duration:.1f} minutes")
-            
-            # Calculate extra distance and duration over direct route
-            if direct_route and num_stops > 0:
-                extra_distance = route.total_distance - direct_route.total_distance
-                extra_duration = route.total_duration - direct_route.total_duration
-                print(f"   📈 Extra Distance: +{extra_distance:.2f} km")
-                print(f"   ⏰ Extra Duration: +{extra_duration:.1f} minutes")
-            
-            print(f"   🗺️  Path: {' → '.join(route.path)}")
-        
-        # Save results to file
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"origin_destination_routes_{timestamp}.json"
-        
-        route_data = {
-            "metadata": {
-                "timestamp": datetime.now().isoformat(),
-                "origin": origin,
-                "destination": destination,
-                "optional_stops": optional_stops,
-                "total_combinations": len(all_combinations),
-                "direct_route": {
-                    "distance_km": round(direct_route.total_distance, 2) if direct_route else None,
-                    "duration_minutes": round(direct_route.total_duration, 1) if direct_route else None
-                }
-            },
-            "all_routes": [
-                {
-                    "name": name,
-                    "path": route.path,
-                    "total_distance_km": round(route.total_distance, 2),
-                    "total_duration_minutes": round(route.total_duration, 1),
-                    "num_stops": num_stops,
-                    "stops_included": route.path[1:-1] if len(route.path) > 2 else [],
-                    "extra_distance_km": round(route.total_distance - direct_route.total_distance, 2) if direct_route and num_stops > 0 else 0,
-                    "extra_duration_minutes": round(route.total_duration - direct_route.total_duration, 1) if direct_route and num_stops > 0 else 0
-                } for name, route, num_stops in all_routes
-            ],
-            "best_routes_by_stops": {
-                str(num_stops): {
-                    "name": name,
-                    "path": route.path,
-                    "total_distance_km": round(route.total_distance, 2),
-                    "total_duration_minutes": round(route.total_duration, 1),
-                    "stops_included": route.path[1:-1] if len(route.path) > 2 else [],
-                    "extra_distance_km": round(route.total_distance - direct_route.total_distance, 2) if direct_route and num_stops > 0 else 0,
-                    "extra_duration_minutes": round(route.total_duration - direct_route.total_duration, 1) if direct_route and num_stops > 0 else 0
-                } for num_stops, (name, route) in best_by_stops.items()
-            },
-            "fastest_route": {
-                "name": all_routes[0][0],
-                "path": all_routes[0][1].path,
-                "total_distance_km": round(all_routes[0][1].total_distance, 2),
-                "total_duration_minutes": round(all_routes[0][1].total_duration, 1),
-                "num_stops": all_routes[0][2]
-            }
-        }
-        
-        with open(filename, 'w') as f:
-            json.dump(route_data, f, indent=2)
-        
-        print(f"\n💾 All routes saved to: {filename}")
-        
-        # Summary statistics
-        print("\n" + "="*60)
-        print("📈 SUMMARY STATISTICS")
-        print("="*60)
-        
-        distances = [route.total_distance for _, route, _ in all_routes]
-        durations = [route.total_duration for _, route, _ in all_routes]
-        
-        print(f"Fastest Route: {all_routes[0][1].total_duration:.1f} minutes ({all_routes[0][1].total_distance:.2f} km)")
-        print(f"Slowest Route: {all_routes[-1][1].total_duration:.1f} minutes ({all_routes[-1][1].total_distance:.2f} km)")
-        print(f"Average Duration: {sum(durations) / len(durations):.1f} minutes")
-        print(f"Shortest Route: {min(distances):.2f} km")
-        print(f"Longest Route: {max(distances):.2f} km")
-        print(f"Average Distance: {sum(distances) / len(distances):.2f} km")
-        
-        if direct_route:
-            print(f"\n📊 COMPARISON TO DIRECT ROUTE:")
-            print(f"   Direct Route: {direct_route.total_duration:.1f} min, {direct_route.total_distance:.2f} km")
-            print(f"   Max Extra Time: {max(durations) - direct_route.total_duration:.1f} minutes")
-            print(f"   Max Extra Distance: {max(distances) - direct_route.total_distance:.2f} km")
         
     except ValueError as e:
         print(f"❌ Configuration error: {e}")
@@ -939,6 +840,142 @@ def solve_origin_destination_with_optional_stops():
     
     except Exception as e:
         print(f"❌ Unexpected error: {e}")
+
+def solve_origin_destination_with_optional_stops_streamlit(origin: str, destination: str, optional_stops: List[str]):
+    """
+    Solve for best path from origin to destination with all combinations of optional stops.
+    Returns data for Streamlit app instead of printing.
+    
+    Args:
+        origin: Starting location
+        destination: Final destination
+        optional_stops: List of optional stops to consider
+        
+    Returns:
+        Dictionary containing route rankings and metadata
+    """
+    
+    try:
+        # Initialize API and solver
+        api = MapboxMatrixAPI()
+        solver = TSPSolver(api)
+        
+        # Generate all possible combinations of optional stops
+        all_combinations = []
+        for r in range(len(optional_stops) + 1):
+            combinations = list(itertools.combinations(optional_stops, r))
+            all_combinations.extend(combinations)
+        
+        all_routes = []
+        
+        # Solve for each combination
+        for i, combination in enumerate(all_combinations, 1):
+            if len(combination) == 0:
+                # Direct route from origin to destination
+                route_locations = [origin, destination]
+                route_name = f"Direct Route ({origin} → {destination})"
+            else:
+                # Route with optional stops
+                route_locations = [origin] + list(combination) + [destination]
+                stops_str = " → ".join(combination)
+                route_name = f"Route with {len(combination)} stop(s): {stops_str}"
+            
+            # Solve TSP for this combination
+            route = solver.solve_tsp(
+                locations=route_locations,
+                start_location=origin,
+                end_location=destination,
+                return_to_start=False
+            )
+            
+            if route:
+                all_routes.append((route_name, route, len(combination)))
+        
+        # Sort routes by duration
+        all_routes.sort(key=lambda x: x[1].total_duration)
+        
+        # Find direct route for comparison
+        direct_route = None
+        for name, route, num_stops in all_routes:
+            if num_stops == 0:
+                direct_route = route
+                break
+        
+        # Prepare route rankings data
+        route_rankings = []
+        for i, (name, route, num_stops) in enumerate(all_routes, 1):
+            route_data = {
+                "rank": i,
+                "name": name,
+                "path": route.path,
+                "total_distance_km": round(route.total_distance, 2),
+                "total_duration_minutes": round(route.total_duration, 1),
+                "num_stops": num_stops,
+                "stops_included": route.path[1:-1] if len(route.path) > 2 else []
+            }
+            
+            # Calculate extra distance and duration over direct route
+            if direct_route and num_stops > 0:
+                extra_distance = route.total_distance - direct_route.total_distance
+                extra_duration = route.total_duration - direct_route.total_duration
+                route_data["extra_distance_km"] = round(extra_distance, 2)
+                route_data["extra_duration_minutes"] = round(extra_duration, 1)
+            else:
+                route_data["extra_distance_km"] = 0
+                route_data["extra_duration_minutes"] = 0
+            
+            route_rankings.append(route_data)
+        
+        # Prepare summary statistics
+        distances = [route.total_distance for _, route, _ in all_routes]
+        durations = [route.total_duration for _, route, _ in all_routes]
+        
+        summary_stats = {
+            "fastest_route": {
+                "duration_minutes": round(all_routes[0][1].total_duration, 1),
+                "distance_km": round(all_routes[0][1].total_distance, 2)
+            },
+            "slowest_route": {
+                "duration_minutes": round(all_routes[-1][1].total_duration, 1),
+                "distance_km": round(all_routes[-1][1].total_distance, 2)
+            },
+            "average_duration_minutes": round(sum(durations) / len(durations), 1),
+            "average_distance_km": round(sum(distances) / len(distances), 2),
+            "shortest_route_km": round(min(distances), 2),
+            "longest_route_km": round(max(distances), 2)
+        }
+        
+        if direct_route:
+            summary_stats["direct_route"] = {
+                "duration_minutes": round(direct_route.total_duration, 1),
+                "distance_km": round(direct_route.total_distance, 2)
+            }
+            summary_stats["max_extra_time_minutes"] = round(max(durations) - direct_route.total_duration, 1)
+            summary_stats["max_extra_distance_km"] = round(max(distances) - direct_route.total_distance, 2)
+        
+        return {
+            "success": True,
+            "route_rankings": route_rankings,
+            "summary_stats": summary_stats,
+            "total_combinations": len(all_combinations),
+            "origin": origin,
+            "destination": destination,
+            "optional_stops": optional_stops
+        }
+        
+    except ValueError as e:
+        return {
+            "success": False,
+            "error": f"Configuration error: {e}",
+            "suggestion": "Please check your Mapbox API key configuration."
+        }
+    
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Unexpected error: {e}",
+            "suggestion": "Please try again or check your input data."
+        }
 
 def main():
     """Main function with hardcoded example locations."""
