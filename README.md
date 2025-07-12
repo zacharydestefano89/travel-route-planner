@@ -6,7 +6,7 @@ A comprehensive Streamlit application for planning travel routes with multiple s
 
 - **Route Planning**: Set origin and destination points
 - **Multiple Stops**: Add up to 10 stops along your route
-- **TSP Route Analysis**: Calculate optimal routes with optional stops using Traveling Salesman Problem solver
+- **TSP Route Analysis**: Calculate optimal routes with optional stops using Held-Karp algorithm (exact solution)
 - **Route Rankings**: View routes ranked by duration with extra time/distance metrics
 - **Interactive Map**: Visualize your route with markers for all points
 - **Route Summary**: View detailed route information and statistics
@@ -102,6 +102,17 @@ A comprehensive Streamlit application for planning travel routes with multiple s
 - **Modular Design**: Separate functions for each page/feature
 - **Error Handling**: Graceful handling of geocoding failures
 - **Responsive Layout**: Column-based layout for better UX
+
+### TSP Algorithms
+
+- **Held-Karp Algorithm**: Exact solution using dynamic programming (O(n²2ⁿ) time complexity)
+  - Used for problems with ≤12 locations
+  - Guarantees optimal solution
+  - Handles start/end location constraints
+- **Nearest Neighbor Heuristic**: Approximate solution for larger problems
+  - Used for problems with >12 locations
+  - Fast but may not be optimal
+  - Good for real-time applications
 
 ### File Structure
 
